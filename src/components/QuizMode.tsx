@@ -89,7 +89,27 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
           ))}
         </div>
       </div>
-
+      <div className="flex justify-between">
+        <button
+          onClick={() => navigateQuestion("prev")}
+          disabled={currentIndex === 0}
+          className="px-4 py-2 flex items-center text-gray-600 hover:text-gray-800 disabled:opacity-50"
+        >
+          <ChevronLeft className="w-5 h-5 mr-1" />
+          Previous
+        </button>
+        <div className="text-sm text-gray-500">
+          Attempts: {currentAttempts.length}/2
+        </div>
+        <button
+          onClick={() => navigateQuestion("next")}
+          disabled={currentIndex === questions.length - 1}
+          className="px-4 py-2 flex items-center text-gray-600 hover:text-gray-800 disabled:opacity-50"
+        >
+          Next
+          <ChevronRight className="w-5 h-5 ml-1" />
+        </button>
+      </div>
       {isExplanationVisible && (
         <div className="mb-6 p-4 bg-blue-50 rounded-md">
           <p className="font-medium text-blue-900 mb-2">Explanation:</p>
@@ -122,28 +142,6 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
             </button>
           );
         })}
-      </div>
-
-      <div className="flex justify-between">
-        <button
-          onClick={() => navigateQuestion("prev")}
-          disabled={currentIndex === 0}
-          className="px-4 py-2 flex items-center text-gray-600 hover:text-gray-800 disabled:opacity-50"
-        >
-          <ChevronLeft className="w-5 h-5 mr-1" />
-          Previous
-        </button>
-        <div className="text-sm text-gray-500">
-          Attempts: {currentAttempts.length}/2
-        </div>
-        <button
-          onClick={() => navigateQuestion("next")}
-          disabled={currentIndex === questions.length - 1}
-          className="px-4 py-2 flex items-center text-gray-600 hover:text-gray-800 disabled:opacity-50"
-        >
-          Next
-          <ChevronRight className="w-5 h-5 ml-1" />
-        </button>
       </div>
     </div>
   );
