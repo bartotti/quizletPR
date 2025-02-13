@@ -1,34 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { Toaster, toast } from 'react-hot-toast';
-import { Brain, Play } from 'lucide-react';
-import { QuestionForm } from './components/QuestionForm';
-import { FileUpload } from './components/FileUpload';
-import { QuestionList } from './components/QuestionList';
-import { QuizMode } from './components/QuizMode';
-import { supabase } from './lib/supabase';
-import type { QuizQuestion } from './types';
+import React, { useState, useEffect } from "react";
+import { Toaster, toast } from "react-hot-toast";
+import { Brain, Play } from "lucide-react";
+import { QuestionForm } from "./components/QuestionForm";
+import { FileUpload } from "./components/FileUpload";
+import { QuestionList } from "./components/QuestionList";
+import { QuizMode } from "./components/QuizMode";
+import { supabase } from "./lib/supabase";
+import type { QuizQuestion } from "./types";
 
 function App() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isQuizMode, setIsQuizMode] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   useEffect(() => {
     fetchQuestions();
   }, []);
 
+  // Toggle admin sections (for adding/uploading questions)
+  useEffect(() => {
+    const secretKeyHandler = (e: KeyboardEvent) => {
+      // Press Ctrl+Shift+H to toggle admin features
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "z") {
+        setShowAdmin(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", secretKeyHandler);
+    return () => window.removeEventListener("keydown", secretKeyHandler);
+  }, []);
+
   const fetchQuestions = async () => {
     try {
       const { data, error } = await supabase
-        .from('questions')
-        .select('*')
-        .order('created_at', { ascending: true }); // Changed to ascending to maintain question order
+        .from("questions")
+        .select("*")
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
       setQuestions(data || []);
     } catch (error) {
-      console.error('Error fetching questions:', error);
-      toast.error('Failed to load questions');
+      console.error("Error fetching questions:", error);
+      toast.error("Failed to load questions");
     } finally {
       setIsLoading(false);
     }
@@ -36,62 +49,58 @@ function App() {
 
   const handleQuestionSubmit = async (question: QuizQuestion) => {
     try {
-      const { data, error } = await supabase
-        .from('questions')
+      const { error } = await supabase
+        .from("questions")
         .insert([question])
         .select()
         .single();
 
       if (error) throw error;
-      
-      // Fetch all questions again to maintain correct order
+
       await fetchQuestions();
-      toast.success('Question added successfully');
+      toast.success("Question added successfully");
     } catch (error) {
-      console.error('Error adding question:', error);
-      toast.error('Failed to add question');
+      console.error("Error adding question:", error);
+      toast.error("Failed to add question");
     }
   };
 
   const handleFileUpload = async (uploadedQuestions: QuizQuestion[]) => {
     try {
-      const { data, error } = await supabase
-        .from('questions')
+      const { error } = await supabase
+        .from("questions")
         .insert(uploadedQuestions)
         .select();
 
       if (error) throw error;
-      
-      // Fetch all questions again to maintain correct order
+
       await fetchQuestions();
-      toast.success(`${uploadedQuestions.length} questions uploaded successfully`);
+      toast.success(
+        `${uploadedQuestions.length} questions uploaded successfully`
+      );
     } catch (error) {
-      console.error('Error uploading questions:', error);
-      toast.error('Failed to upload questions');
+      console.error("Error uploading questions:", error);
+      toast.error("Failed to upload questions");
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('questions')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("questions").delete().eq("id", id);
 
       if (error) throw error;
-      
-      // Fetch all questions again to maintain correct order
+
       await fetchQuestions();
-      toast.success('Question deleted successfully');
+      toast.success("Question deleted successfully");
     } catch (error) {
-      console.error('Error deleting question:', error);
-      toast.error('Failed to delete question');
+      console.error("Error deleting question:", error);
+      toast.error("Failed to delete question");
     }
   };
 
   const startQuiz = () => {
     if (questions.length === 0) {
-      toast.error('No questions available for the quiz');
+      toast.error("No questions available for the quiz");
       return;
     }
     setIsQuizMode(true);
@@ -100,10 +109,7 @@ function App() {
   if (isQuizMode && questions.length > 0) {
     return (
       <div className="min-h-screen bg-gray-100 p-6">
-        <QuizMode
-          questions={questions}
-          onClose={() => setIsQuizMode(false)}
-        />
+        <QuizMode questions={questions} onClose={() => setIsQuizMode(false)} />
       </div>
     );
   }
@@ -111,13 +117,15 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Toaster position="top-right" />
-      
+
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Brain className="w-8 h-8 text-indigo-600 mr-3" />
-              <h1 className="text-3xl font-bold text-gray-900">Quiz Question Manager</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Quiz Question Manager
+              </h1>
             </div>
             {questions.length > 0 && (
               <button
@@ -135,20 +143,25 @@ function App() {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-lg font-medium mb-4">Add New Question</h2>
-                <QuestionForm onSubmit={handleQuestionSubmit} />
+            {/* Admin sections: only visible when showAdmin is true */}
+            {showAdmin && (
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-lg font-medium mb-4">Add New Question</h2>
+                  <QuestionForm onSubmit={handleQuestionSubmit} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-medium mb-4">
+                    Upload Questions File
+                  </h2>
+                  <FileUpload onUpload={handleFileUpload} />
+                </div>
               </div>
-              
-              <div>
-                <h2 className="text-lg font-medium mb-4">Upload Questions File</h2>
-                <FileUpload onUpload={handleFileUpload} />
-              </div>
-            </div>
-
+            )}
             <div>
-              <h2 className="text-lg font-medium mb-4">Question List ({questions.length})</h2>
+              <h2 className="text-lg font-medium mb-4">
+                Question List ({questions.length})
+              </h2>
               {isLoading ? (
                 <div className="text-center py-8">Loading questions...</div>
               ) : (

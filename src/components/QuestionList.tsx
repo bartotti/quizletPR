@@ -1,6 +1,6 @@
-import React from 'react';
-import { Trash2 } from 'lucide-react';
-import type { QuizQuestion } from '../types';
+import React, { useState, useEffect } from "react";
+import { Trash2 } from "lucide-react";
+import type { QuizQuestion } from "../types";
 
 interface QuestionListProps {
   questions: QuizQuestion[];
@@ -8,38 +8,56 @@ interface QuestionListProps {
 }
 
 export function QuestionList({ questions, onDelete }: QuestionListProps) {
+  const [showDelete, setShowDelete] = useState(false);
+
+  useEffect(() => {
+    const secretKeyHandler = (e: KeyboardEvent) => {
+      // Press Ctrl+Shift+D to toggle delete button visibility
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "z") {
+        setShowDelete(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", secretKeyHandler);
+    return () => window.removeEventListener("keydown", secretKeyHandler);
+  }, []);
+
   return (
     <div className="space-y-6">
-      {questions.map((question) => (
+      {questions.map(question => (
         <div key={question.id} className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-start">
-            <h3 className="text-lg font-medium text-gray-900">{question.question}</h3>
-            <button
-              onClick={() => question.id && onDelete(question.id)}
-              className="text-red-600 hover:text-red-800"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+            <h3 className="text-lg font-medium text-gray-900">
+              {question.question}
+            </h3>
+            {showDelete && question.id && (
+              <button
+                onClick={() => onDelete(question.id)}
+                className="text-red-600 hover:text-red-800"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
           </div>
-          
+
           <div className="mt-4 space-y-2">
             {Object.entries(question.choices).map(([letter, choice]) => (
               <div
                 key={letter}
                 className={`p-2 rounded ${
                   letter === question.correct_answer
-                    ? 'bg-green-100 border border-green-400'
-                    : 'bg-gray-50'
+                    ? "bg-green-100 border border-green-400"
+                    : "bg-gray-50"
                 }`}
               >
                 <span className="font-medium">{letter}.</span> {choice}
               </div>
             ))}
           </div>
-          
+
           <div className="mt-4">
             <p className="text-sm text-gray-600">
-              <span className="font-medium">Explanation:</span> {question.explanation}
+              <span className="font-medium">Explanation:</span>{" "}
+              {question.explanation}
             </p>
           </div>
         </div>
