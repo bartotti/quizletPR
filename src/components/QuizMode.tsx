@@ -13,9 +13,8 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
   const [showExplanation, setShowExplanation] = useState<
     Record<number, boolean>
   >({});
-  const [visitedQuestions, setVisitedQuestions] = useState<Set<number>>(
-    new Set([0])
-  );
+  const [score, setScore] = useState(0);
+  const [completed, setCompleted] = useState(false);
 
   const currentQuestion = questions[currentIndex];
   const currentAttempts = attempts[currentIndex] || [];
@@ -31,12 +30,20 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
     setAttempts(newAttempts);
 
     if (answer === currentQuestion.correct_answer) {
+      const points = currentAttempts.length === 0 ? 2 : 1;
+      setScore(score + points);
       setShowExplanation({ ...showExplanation, [currentIndex]: true });
     } else if (newAttempts[currentIndex].length >= 2) {
       setShowExplanation({ ...showExplanation, [currentIndex]: true });
     }
 
-    setVisitedQuestions(prev => new Set([...prev, currentIndex]));
+    if (
+      currentIndex === questions.length - 1 &&
+      (answer === currentQuestion.correct_answer ||
+        newAttempts[currentIndex].length >= 2)
+    ) {
+      setCompleted(true);
+    }
   };
 
   const navigateQuestion = (direction: "prev" | "next") => {
@@ -58,6 +65,27 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
       ? "bg-red-100 border-red-500"
       : "bg-white";
   };
+
+  if (completed) {
+    const maxScore = questions.length * 2;
+    const percentage = Math.round((score / maxScore) * 100);
+
+    return (
+      <div className="bg-white p-8 rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-4">Quiz Completed!</h2>
+        <p className="text-lg mb-4">
+          Your score: {score} out of {maxScore} points
+        </p>
+        <p className="text-3xl font-bold text-indigo-600 mb-6">{percentage}%</p>
+        <button
+          onClick={onClose}
+          className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+        >
+          Return to Question Manager
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
@@ -89,6 +117,14 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
           ))}
         </div>
       </div>
+
+      {isExplanationVisible && (
+        <div className="mb-6 p-4 bg-blue-50 rounded-md">
+          <p className="font-medium text-blue-900 mb-2">Explanation:</p>
+          <p className="text-blue-800">{currentQuestion.explanation}</p>
+        </div>
+      )}
+
       <div className="flex justify-between">
         <button
           onClick={() => navigateQuestion("prev")}
@@ -103,45 +139,14 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
         </div>
         <button
           onClick={() => navigateQuestion("next")}
-          disabled={currentIndex === questions.length - 1}
+          disabled={
+            currentIndex === questions.length - 1 || !isExplanationVisible
+          }
           className="px-4 py-2 flex items-center text-gray-600 hover:text-gray-800 disabled:opacity-50"
         >
           Next
           <ChevronRight className="w-5 h-5 ml-1" />
         </button>
-      </div>
-      {isExplanationVisible && (
-        <div className="mb-6 p-4 bg-blue-50 rounded-md">
-          <p className="font-medium text-blue-900 mb-2">Explanation:</p>
-          <p className="text-blue-800">{currentQuestion.explanation}</p>
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2 mb-6">
-        {questions.map((_, index) => {
-          const isVisited = visitedQuestions.has(index);
-          const isAnswered = showExplanation[index];
-
-          return (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`w-10 h-10 rounded-md flex items-center justify-center text-sm font-medium transition-colors
-          ${
-            currentIndex === index
-              ? "bg-indigo-600 text-white"
-              : isAnswered
-              ? "bg-green-500 text-white hover:bg-green-600"
-              : isVisited
-              ? "bg-gray-200 hover:bg-gray-300"
-              : "bg-gray-100 hover:bg-gray-200"
-          }
-        `}
-            >
-              {index + 1}
-            </button>
-          );
-        })}
       </div>
     </div>
   );

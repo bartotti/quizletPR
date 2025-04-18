@@ -1,7 +1,7 @@
-import React, { useRef } from "react";
-import { Upload } from "lucide-react";
-import { toast } from "react-hot-toast";
-import type { QuizQuestion } from "../types";
+import React, { useRef } from 'react';
+import { Upload } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import type { QuizQuestion } from '../types';
 
 interface FileUploadProps {
   onUpload: (questions: QuizQuestion[]) => void;
@@ -13,36 +13,39 @@ export function FileUpload({ onUpload }: FileUploadProps) {
   const parseQuestions = (text: string): QuizQuestion[] => {
     const questions: QuizQuestion[] = [];
     const questionBlocks = text
-      .split(/(?=\n\d+\.\s+)/g) // FIX: Ensures numbers like 11, 12, etc., are correctly recognized
+      .split(/(?=\n\d+\.\s+)/g)
       .map(block => block.trim())
       .filter(block => block);
 
     for (const block of questionBlocks) {
-      const lines = block.split("\n").map(line => line.trim());
+      const lines = block.split('\n').map(line => line.trim());
       const questionMatch = lines[0].match(/^\d+\.\s+(.+)$/);
-      const question = questionMatch
-        ? questionMatch[1].trim()
-        : lines[0].trim();
+      const question = questionMatch ? questionMatch[1].trim() : lines[0].trim();
       const choices: Record<string, string> = {};
-      let correct_answer: "A" | "B" | "C" | "D" = "A";
-      let explanation = "";
+      let correct_answer: 'A' | 'B' | 'C' | 'D' | 'E' = 'A';
+      let explanation = '';
 
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
-        if (/^[A-D]\.\s+/.test(line)) {
-          const [letter, ...rest] = line.split(". ");
-          choices[letter] = rest.join(". ").trim();
-        } else if (line.startsWith("Correct Answer:")) {
-          correct_answer = line.split(":")[1].trim() as "A" | "B" | "C" | "D";
-        } else if (line.startsWith("Explanation:")) {
-          explanation = line.split(":")[1].trim();
+        if (/^[A-E]\.\s+/.test(line)) {
+          const [letter, ...rest] = line.split('. ');
+          choices[letter] = rest.join('. ').trim();
+        } else if (line.startsWith('Correct Answer:')) {
+          correct_answer = line.split(':')[1].trim() as 'A' | 'B' | 'C' | 'D' | 'E';
+        } else if (line.startsWith('Explanation:')) {
+          explanation = line.split(':')[1].trim();
         }
       }
 
-      if (question && Object.keys(choices).length === 4 && explanation) {
+      // Check if we have at least 4 choices (ABCD) and optionally E
+      const hasValidChoices = Object.keys(choices).length >= 4 && 
+        ['A', 'B', 'C', 'D'].every(letter => choices[letter]) &&
+        (!choices['E'] || choices['E'].trim() !== '');
+
+      if (question && hasValidChoices && explanation) {
         questions.push({
           question,
-          choices: choices as { A: string; B: string; C: string; D: string },
+          choices: choices as { A: string; B: string; C: string; D: string; E?: string },
           correct_answer,
           explanation,
         });
@@ -63,7 +66,7 @@ export function FileUpload({ onUpload }: FileUploadProps) {
       if (questions.length > 0) {
         onUpload(questions);
       } else {
-        toast.error("No valid questions found in the file");
+        toast.error('No valid questions found in the file');
       }
     };
     reader.readAsText(file);
@@ -75,12 +78,9 @@ export function FileUpload({ onUpload }: FileUploadProps) {
         <div className="flex flex-col items-center justify-center pt-5 pb-6">
           <Upload className="w-8 h-8 mb-2 text-gray-500" />
           <p className="mb-2 text-sm text-gray-500">
-            <span className="font-semibold">Click to upload</span> or drag and
-            drop
+            <span className="font-semibold">Click to upload</span> or drag and drop
           </p>
-          <p className="text-xs text-gray-500">
-            TXT file containing quiz questions
-          </p>
+          <p className="text-xs text-gray-500">TXT file containing quiz questions</p>
         </div>
         <input
           ref={fileInputRef}

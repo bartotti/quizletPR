@@ -6,8 +6,9 @@ export interface QuizQuestion {
     B: string;
     C: string;
     D: string;
+    E?: string;
   };
-  correct_answer: 'A' | 'B' | 'C' | 'D';  // Changed from correctAnswer to correct_answer
+  correct_answer: 'A' | 'B' | 'C' | 'D' | 'E';
   explanation: string;
   created_at?: string;
 }
