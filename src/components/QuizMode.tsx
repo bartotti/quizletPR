@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { QuizQuestion } from "../types";
 
@@ -13,15 +13,14 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
   const [showExplanation, setShowExplanation] = useState<
     Record<number, boolean>
   >({});
-  const [score, setScore] = useState(0);
-  const [completed, setCompleted] = useState(false);
 
   const currentQuestion = questions[currentIndex];
   const currentAttempts = attempts[currentIndex] || [];
   const isExplanationVisible = showExplanation[currentIndex] || false;
 
   const handleAnswer = (answer: string) => {
-    if (currentAttempts.length >= 2 || isExplanationVisible) return;
+    // Already answered correctly or hit 2 tries
+    if (isExplanationVisible || currentAttempts.includes(answer)) return;
 
     const newAttempts = {
       ...attempts,
@@ -29,20 +28,11 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
     };
     setAttempts(newAttempts);
 
-    if (answer === currentQuestion.correct_answer) {
-      const points = currentAttempts.length === 0 ? 2 : 1;
-      setScore(score + points);
-      setShowExplanation({ ...showExplanation, [currentIndex]: true });
-    } else if (newAttempts[currentIndex].length >= 2) {
-      setShowExplanation({ ...showExplanation, [currentIndex]: true });
-    }
+    const isCorrect = answer === currentQuestion.correct_answer;
+    const reachedMaxAttempts = newAttempts[currentIndex].length >= 2;
 
-    if (
-      currentIndex === questions.length - 1 &&
-      (answer === currentQuestion.correct_answer ||
-        newAttempts[currentIndex].length >= 2)
-    ) {
-      setCompleted(true);
+    if (isCorrect || reachedMaxAttempts) {
+      setShowExplanation(prev => ({ ...prev, [currentIndex]: true }));
     }
   };
 
@@ -66,27 +56,6 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
       : "bg-white";
   };
 
-  if (completed) {
-    const maxScore = questions.length * 2;
-    const percentage = Math.round((score / maxScore) * 100);
-
-    return (
-      <div className="bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-4">Quiz Completed!</h2>
-        <p className="text-lg mb-4">
-          Your score: {score} out of {maxScore} points
-        </p>
-        <p className="text-3xl font-bold text-indigo-600 mb-6">{percentage}%</p>
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-        >
-          Return to Question Manager
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-6">
@@ -94,7 +63,7 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
           Question {currentIndex + 1} of {questions.length}
         </h2>
         <button onClick={onClose} className="text-gray-600 hover:text-gray-800">
-          Exit Quiz
+          Exit Practice
         </button>
       </div>
 
@@ -125,7 +94,7 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
         </div>
       )}
 
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center mb-6">
         <button
           onClick={() => navigateQuestion("prev")}
           disabled={currentIndex === 0}
@@ -139,14 +108,37 @@ export function QuizMode({ questions, onClose }: QuizModeProps) {
         </div>
         <button
           onClick={() => navigateQuestion("next")}
-          disabled={
-            currentIndex === questions.length - 1 || !isExplanationVisible
-          }
+          disabled={currentIndex === questions.length - 1}
           className="px-4 py-2 flex items-center text-gray-600 hover:text-gray-800 disabled:opacity-50"
         >
           Next
           <ChevronRight className="w-5 h-5 ml-1" />
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {questions.map((_, index) => {
+          const hasTried = attempts[index]?.length > 0;
+          const isDone = showExplanation[index];
+          return (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`w-10 h-10 rounded-md flex items-center justify-center text-sm font-medium transition-colors
+              ${
+                currentIndex === index
+                  ? "bg-indigo-600 text-white"
+                  : isDone
+                  ? "bg-green-500 text-white hover:bg-green-600"
+                  : hasTried
+                  ? "bg-gray-200 hover:bg-gray-300"
+                  : "bg-gray-100 hover:bg-gray-200"
+              }`}
+            >
+              {index + 1}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
